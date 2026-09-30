@@ -161,7 +161,7 @@ ul.tips { margin: 0; padding-left: 1.1em; display: grid; gap: 8px; }
 .phase .wk { font-family: var(--display); font-weight: 700; font-size: 1.05rem; color: var(--accent); line-height: 1.1; }
 
 /* Tab bar */
-nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)); z-index: 5; }
+nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); z-index: 5; }
 nav.tabs a { display: grid; justify-items: center; gap: 2px; padding: 6px 0; font-size: .75rem; font-weight: 600; color: var(--muted); text-decoration: none; border-radius: 10px; }
 nav.tabs a svg { width: 24px; height: 24px; }
 nav.tabs a[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
@@ -201,6 +201,18 @@ nav.tabs a[aria-current="page"] { color: var(--accent); background: var(--accent
 .timer.work .bar { color: var(--heat); }
 .timer.rest .bar { color: var(--rest); }
 
+/* Food */
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.days button { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 0; font-weight: 600; font-size: .85rem; cursor: pointer; position: relative; }
+.days button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.days button i { position: absolute; left: 50%; bottom: 3px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: currentColor; }
+.meal { display: grid; gap: 6px; padding: 12px; border-radius: 12px; background: var(--sunk); min-width: 0; }
+.meal-name { font-weight: 600; line-height: 1.3; }
+.meal summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+ul.ing { margin: 8px 0; padding-left: 1.1em; font-size: .9rem; display: grid; gap: 2px; }
+.check.shop { font-weight: 500; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.check.shop.got .grow { text-decoration: line-through; color: var(--muted); }
+.seg { flex-wrap: wrap; justify-self: start; }
 .toast { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); max-width: calc(100% - 32px); text-align: center; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 600; z-index: 30; font-size: .9rem; }
 .note { font-size: .85rem; color: var(--muted); background: var(--sunk); border-radius: 10px; padding: 10px 12px; }
 textarea { width: 100%; min-height: 90px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; font: .8rem/1.4 ui-monospace, Menlo, monospace; color: var(--ink); }
@@ -213,6 +225,7 @@ textarea { width: 100%; min-height: 90px; background: var(--bg); border: 1px sol
 <nav class="tabs" aria-label="Sections">
   <a href="#today" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 6.5v11M17.5 6.5v11M3 9.5v5M21 9.5v5M6.5 12h11"/></svg>Today</a>
   <a href="#plan" data-tab="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Plan</a>
+  <a href="#food" data-tab="food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v8M4.5 3v5a2.5 2.5 0 0 0 5 0V3M7 11v10"/><path d="M17 21V3c-2.2 1.3-3.5 3.9-3.5 7v3H17"/></svg>Food</a>
   <a href="#progress" data-tab="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/></svg>Progress</a>
   <a href="#settings" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Settings</a>
 </nav>
@@ -338,6 +351,7 @@ const KEY = 'leanplan.v1';
 const defaults = () => ({
   settings: {
     name: '', startDate: iso(mondayOf(new Date())), days: 3, height: null,
+    sex: '', age: null, activity: 1.375,
     wUnit: 'kg', lUnit: 'cm',
     playlists: [
       { name: 'Find a workout playlist on Spotify', url: 'https://open.spotify.com/search/workout' }
@@ -346,13 +360,14 @@ const defaults = () => ({
   },
   measurements: [],
   sessions: [],
+  food: { swaps: {}, habits: {}, shop: {} },
   active: null
 });
 let S = load();
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const d = JSON.parse(raw); const base = defaults(); return { ...base, ...d, settings: { ...base.settings, ...(d.settings || {}) } }; }
+    if (raw) { const d = JSON.parse(raw); const base = defaults(); return { ...base, ...d, settings: { ...base.settings, ...(d.settings || {}) }, food: { ...base.food, ...(d.food || {}) } }; }
   } catch (e) {}
   return defaults();
 }
@@ -406,6 +421,190 @@ function toast(msg) {
 }
 
 /* ============================================================
+   NUTRITION
+   ============================================================ */
+// key: [shopping name, unit, kcal per 100 g/ml (or per item), protein g per 100 g/ml (or per item), aisle, whole items only]
+const FOOD = {
+  egg: ['Eggs', 'each', 70, 6.5, 'dairy', true],
+  oats: ['Porridge oats', 'g', 375, 11, 'grains'],
+  milk: ['Semi-skimmed milk', 'ml', 50, 3.6, 'dairy'],
+  greek: ['0% fat Greek yoghurt', 'g', 57, 10, 'dairy'],
+  berries: ['Frozen mixed berries', 'g', 50, 1, 'veg'],
+  banana: ['Bananas', 'each', 95, 1.2, 'veg'],
+  apple: ['Apples', 'each', 80, 0.4, 'veg', true],
+  bread: ['Wholemeal bread (slices)', 'each', 95, 4, 'grains', true],
+  wrap: ['Wholemeal wraps', 'each', 175, 5.5, 'grains'],
+  pb: ['Peanut butter', 'g', 600, 25, 'cupboard'],
+  honey: ['Honey', 'g', 304, 0.3, 'cupboard'],
+  seeds: ['Mixed seeds or chia seeds', 'g', 560, 22, 'cupboard'],
+  whey: ['Whey protein powder', 'g', 380, 78, 'cupboard'],
+  cottage: ['Low-fat cottage cheese', 'g', 75, 12, 'dairy'],
+  creamcheese: ['Light cream cheese', 'g', 155, 7.5, 'dairy'],
+  cheddar: ['Reduced-fat cheddar', 'g', 315, 27, 'dairy'],
+  feta: ['Feta', 'g', 265, 15, 'dairy'],
+  parmesan: ['Parmesan', 'g', 400, 33, 'dairy'],
+  hummus: ['Hummus', 'g', 300, 7, 'dairy'],
+  smokedsalmon: ['Smoked salmon', 'g', 184, 23, 'meat'],
+  salmon: ['Salmon fillets', 'g', 208, 20, 'meat'],
+  cod: ['Cod or other white fish fillets', 'g', 80, 18, 'meat'],
+  prawns: ['Cooked king prawns', 'g', 70, 15, 'meat'],
+  cookedchicken: ['Cooked chicken breast', 'g', 155, 31, 'meat'],
+  chicken: ['Chicken breast (raw)', 'g', 110, 23.5, 'meat'],
+  turkey: ['Turkey mince (5% fat)', 'g', 130, 20, 'meat'],
+  beef: ['Lean beef mince (5% fat)', 'g', 125, 21, 'meat'],
+  ham: ['Lean sliced ham', 'g', 110, 19, 'meat'],
+  avocado: ['Avocado', 'g', 160, 2, 'veg'],
+  tomatoes: ['Cherry tomatoes', 'g', 20, 0.9, 'veg'],
+  cucumber: ['Cucumber', 'g', 12, 0.7, 'veg'],
+  leaves: ['Mixed salad leaves', 'g', 18, 1.5, 'veg'],
+  spinach: ['Baby spinach', 'g', 23, 2.9, 'veg'],
+  pepper: ['Peppers', 'g', 30, 1, 'veg'],
+  onion: ['Onions', 'g', 40, 1.1, 'veg'],
+  broccoli: ['Tenderstem broccoli', 'g', 35, 3, 'veg'],
+  beans: ['Green beans', 'g', 30, 2, 'veg'],
+  stirfry: ['Stir-fry vegetable pack', 'g', 35, 2, 'veg'],
+  courgette: ['Courgette', 'g', 17, 1.2, 'veg'],
+  mushrooms: ['Mushrooms', 'g', 22, 3, 'veg'],
+  carrot: ['Carrots', 'g', 35, 0.6, 'veg'],
+  edamame: ['Frozen edamame beans', 'g', 120, 11.5, 'veg'],
+  newpots: ['New potatoes', 'g', 75, 1.7, 'veg'],
+  sweetpot: ['Sweet potatoes', 'g', 86, 1.6, 'veg'],
+  sweetcorn: ['Sweetcorn (tin or frozen)', 'g', 80, 2.9, 'grains'],
+  rice: ['Microwave rice pouches (basmati or brown)', 'g', 155, 3.4, 'grains'],
+  quinoa: ['Microwave quinoa pouches', 'g', 165, 5.5, 'grains'],
+  pasta: ['Wholewheat pasta (dry)', 'g', 350, 13, 'grains'],
+  noodles: ['Straight-to-wok egg noodles', 'g', 165, 5, 'grains'],
+  chickpeas: ['Tinned chickpeas (drained)', 'g', 115, 7, 'grains'],
+  blackbeans: ['Tinned black beans (drained)', 'g', 110, 7.5, 'grains'],
+  choptoms: ['Tinned chopped tomatoes', 'g', 22, 1.2, 'grains'],
+  passata: ['Passata', 'g', 30, 1.3, 'grains'],
+  coconut: ['Light coconut milk', 'ml', 70, 0.6, 'grains'],
+  tikka: ['Tikka curry paste', 'g', 220, 3, 'cupboard'],
+  pesto: ['Green pesto', 'g', 430, 5, 'cupboard'],
+  salsa: ['Tomato salsa', 'g', 40, 1.5, 'cupboard'],
+  soy: ['Light soy sauce', 'ml', 50, 7, 'cupboard'],
+  oil: ['Olive oil', 'ml', 820, 0, 'cupboard'],
+  ricecakes: ['Rice cakes', 'each', 30, 0.6, 'cupboard', true],
+  almonds: ['Almonds', 'g', 600, 21, 'cupboard'],
+  choc: ['Dark chocolate (70%+)', 'g', 600, 8, 'cupboard']
+};
+const AISLES = [['meat', 'Meat & fish'], ['dairy', 'Dairy, eggs & chilled'], ['veg', 'Fruit & veg'], ['grains', 'Bread, grains & tins'], ['cupboard', 'Cupboard']];
+const SLOTS = [['b', 'Breakfast'], ['l', 'Lunch'], ['d', 'Dinner'], ['s1', 'Snack'], ['s2', 'Snack']];
+
+const MEALS = {
+  // Breakfasts
+  porridge: { slot: 'b', n: 'Protein porridge with berries', mins: 5, items: [['oats', 50], ['milk', 250], ['whey', 20], ['berries', 80]], how: 'Microwave the oats and milk for 2–3 minutes, stirring halfway. Stir in the protein powder with a splash of water, then top with the berries (straight from frozen is fine).' },
+  yogbowl: { slot: 'b', n: 'Greek yoghurt power bowl', mins: 3, items: [['greek', 250], ['berries', 100], ['oats', 30], ['seeds', 10], ['honey', 5]], how: 'Spoon the yoghurt into a bowl and top with berries, oats, seeds and a drizzle of honey.' },
+  scramble: { slot: 'b', n: 'Scrambled eggs, spinach & toast', mins: 8, items: [['egg', 3], ['bread', 2], ['spinach', 50], ['tomatoes', 80]], extras: ['Spray oil'], how: 'Whisk the eggs. Wilt the spinach in a non-stick pan with a spray of oil, add the eggs and stir gently over a low heat until just set. Serve on toast with the tomatoes.' },
+  salmontoast: { slot: 'b', n: 'Smoked salmon, cream cheese & egg on toast', mins: 10, items: [['bread', 2], ['creamcheese', 30], ['smokedsalmon', 60], ['egg', 1], ['cucumber', 50]], extras: ['Lemon'], how: 'Boil the egg for 7 minutes. Toast the bread, spread with cream cheese, top with smoked salmon, sliced egg and a squeeze of lemon. Cucumber on the side.' },
+  overnight: { slot: 'b', n: 'Overnight oats', mins: 3, items: [['oats', 50], ['milk', 150], ['greek', 150], ['seeds', 10], ['banana', 0.5]], how: 'The night before, mix oats, milk, yoghurt and seeds in a jar and put it in the fridge. In the morning slice the banana on top.' },
+  omelette: { slot: 'b', n: 'Veggie omelette & toast', mins: 10, items: [['egg', 3], ['pepper', 60], ['mushrooms', 60], ['spinach', 30], ['cheddar', 20], ['bread', 1]], extras: ['Spray oil'], how: 'Soften the chopped pepper and mushrooms in a sprayed pan for 3 minutes. Pour in the beaten eggs, add spinach and grated cheese, cook until set and fold. Serve with toast.' },
+  pbtoast: { slot: 'b', n: 'Peanut butter & banana toast with yoghurt', mins: 4, items: [['bread', 2], ['pb', 15], ['banana', 0.5], ['greek', 150]], how: 'Toast the bread, spread thinly with peanut butter and top with sliced banana. Have the yoghurt on the side.' },
+  // Lunches
+  chickenwrap: { slot: 'l', n: 'Chicken & hummus wrap', mins: 5, items: [['wrap', 1], ['cookedchicken', 100], ['hummus', 30], ['leaves', 30], ['pepper', 50], ['cucumber', 50], ['apple', 1]], how: 'Spread hummus over the wrap, add chicken, leaves and sliced pepper and cucumber, roll up tightly and cut in half. Apple for afters.' },
+  prawnbowl: { slot: 'l', n: 'Prawn, avocado & edamame rice bowl', mins: 5, items: [['rice', 125], ['prawns', 120], ['avocado', 50], ['edamame', 60], ['sweetcorn', 40], ['cucumber', 50], ['soy', 10]], extras: ['Lime', 'Chilli flakes'], how: 'Microwave the rice and the edamame. Top with prawns, sliced avocado, sweetcorn and cucumber. Dress with soy sauce, lime juice and a pinch of chilli.' },
+  pestopasta: { slot: 'l', n: 'Chicken pesto pasta salad', mins: 12, items: [['pasta', 60], ['cookedchicken', 90], ['pesto', 15], ['tomatoes', 80], ['spinach', 30]], how: 'Cook the pasta for 10–11 minutes, rinse under cold water. Toss with pesto, chicken, halved tomatoes and spinach. Keeps in the fridge for 2 days, so make two at once.' },
+  proteinbox: { slot: 'l', n: 'Egg, ham & hummus protein box', mins: 10, items: [['egg', 2], ['ham', 60], ['hummus', 30], ['carrot', 80], ['cucumber', 60], ['tomatoes', 80], ['ricecakes', 3]], how: 'Boil the eggs for 8 minutes and cool in cold water. Pack with ham, hummus, carrot and cucumber sticks, tomatoes and rice cakes.' },
+  quinoasalad: { slot: 'l', n: 'Chicken, chickpea & feta quinoa salad', mins: 5, items: [['quinoa', 125], ['cookedchicken', 60], ['chickpeas', 80], ['feta', 40], ['tomatoes', 80], ['cucumber', 60], ['leaves', 30], ['oil', 5]], extras: ['Lemon'], how: 'Warm or chill the quinoa pouch. Mix with chickpeas, chicken, chopped tomatoes and cucumber, crumble over the feta, dress with olive oil and lemon. Serve on the leaves.' },
+  quesadilla: { slot: 'l', n: 'Chicken & black bean quesadilla', mins: 10, items: [['wrap', 1], ['cookedchicken', 60], ['blackbeans', 80], ['cheddar', 30], ['pepper', 50], ['salsa', 40], ['greek', 50]], extras: ['Smoked paprika'], how: 'Roughly mash the beans with paprika. Spread over half the wrap, add chicken, pepper and cheese, fold over and dry-fry 2–3 minutes each side until crisp. Serve with salsa and yoghurt.' },
+  sweetpotato: { slot: 'l', n: 'Sweet potato with cottage cheese & chicken', mins: 12, items: [['sweetpot', 250], ['cottage', 150], ['cookedchicken', 50], ['leaves', 40], ['tomatoes', 80]], extras: ['Black pepper', 'Chives'], how: 'Prick the sweet potato and microwave for 8–10 minutes until soft. Split and fill with cottage cheese and chicken, season with pepper. Salad on the side.' },
+  // Dinners
+  salmonpots: { slot: 'd', n: 'Lemon salmon, new potatoes & greens', mins: 18, items: [['salmon', 130], ['newpots', 200], ['broccoli', 100], ['beans', 80]], extras: ['Lemon', 'Dill or parsley'], how: 'Boil the halved potatoes for 15 minutes. Meanwhile bake the salmon at 200°C (180°C fan) for 12–14 minutes. Steam the broccoli and beans over the potatoes for the last 5 minutes. Finish with lemon and herbs.' },
+  stirfry: { slot: 'd', n: 'Chicken & vegetable noodle stir-fry', mins: 15, items: [['chicken', 150], ['stirfry', 200], ['noodles', 150], ['soy', 15], ['oil', 5]], extras: ['Garlic', 'Fresh ginger', 'Chilli (optional)'], how: 'Slice the chicken thinly and stir-fry in the oil on a high heat for 5–6 minutes. Add garlic, ginger and the veg for 3 minutes, then the noodles and soy sauce for 2 minutes until hot.' },
+  chilli: { slot: 'd', n: 'Turkey chilli with rice', mins: 20, items: [['turkey', 150], ['onion', 60], ['pepper', 80], ['choptoms', 200], ['blackbeans', 60], ['rice', 125], ['greek', 50], ['oil', 5]], extras: ['Garlic', 'Chilli powder', 'Ground cumin'], how: 'Fry the onion and pepper in the oil for 4 minutes. Add the mince and brown for 5 minutes, then garlic and spices. Add tomatoes and beans and simmer for 10 minutes. Serve on rice with a spoon of yoghurt. Double it and freeze a portion.' },
+  curry: { slot: 'd', n: 'Prawn, chickpea & spinach curry', mins: 15, items: [['prawns', 150], ['tikka', 25], ['coconut', 100], ['chickpeas', 60], ['spinach', 60], ['pepper', 80], ['onion', 50], ['rice', 125], ['oil', 5]], how: 'Fry the onion and pepper in the oil for 4 minutes. Stir in the curry paste for 1 minute, then add coconut milk and chickpeas and simmer for 5 minutes. Add prawns and spinach until hot. Serve with rice.' },
+  bolognese: { slot: 'd', n: 'Quick beef & veg bolognese', mins: 20, items: [['beef', 125], ['passata', 200], ['onion', 50], ['mushrooms', 80], ['courgette', 80], ['pasta', 70], ['parmesan', 10]], extras: ['Garlic', 'Dried oregano'], how: 'Put the pasta on to boil. Brown the mince in a dry pan for 5 minutes, add chopped onion, mushrooms, courgette and garlic for 4 minutes, then passata and oregano and simmer until the pasta is ready. Top with parmesan.' },
+  pestocod: { slot: 'd', n: 'Pesto-baked cod with quinoa & beans', mins: 15, items: [['cod', 150], ['pesto', 15], ['tomatoes', 100], ['quinoa', 125], ['beans', 100], ['oil', 5]], how: 'Spread pesto over the cod, put in a tray with the tomatoes and a drizzle of oil and bake at 200°C (180°C fan) for 12 minutes. Steam the green beans and microwave the quinoa.' },
+  fajitas: { slot: 'd', n: 'Chicken fajitas', mins: 15, items: [['chicken', 150], ['pepper', 120], ['onion', 60], ['wrap', 1.5], ['greek', 50], ['salsa', 40], ['oil', 5]], extras: ['Fajita seasoning', 'Lime'], how: 'Slice the chicken, peppers and onion into strips, toss with seasoning and fry in the oil on a high heat for 8–10 minutes. Warm the wraps and fill with the chicken, salsa and yoghurt.' },
+  // Snacks
+  yogberries: { slot: 's', n: 'Greek yoghurt & berries', mins: 1, items: [['greek', 150], ['berries', 50]] },
+  applepb: { slot: 's', n: 'Apple & peanut butter', mins: 1, items: [['apple', 1], ['pb', 15]] },
+  shake: { slot: 's', n: 'Protein shake (great after training)', mins: 1, items: [['whey', 30], ['milk', 200]] },
+  cottagecakes: { slot: 's', n: 'Cottage cheese on rice cakes', mins: 2, items: [['cottage', 100], ['ricecakes', 2]] },
+  almondsnack: { slot: 's', n: 'Almonds & a banana', mins: 1, items: [['almonds', 15], ['banana', 1]] },
+  eggs2: { slot: 's', n: 'Two boiled eggs', mins: 8, items: [['egg', 2]] },
+  crudites: { slot: 's', n: 'Carrot sticks & hummus', mins: 2, items: [['carrot', 80], ['hummus', 40]] },
+  edamamesnack: { slot: 's', n: 'Edamame beans with sea salt', mins: 4, items: [['edamame', 100]] },
+  chocolate: { slot: 's', n: 'Dark chocolate & yoghurt', mins: 1, items: [['choc', 15], ['greek', 100]] }
+};
+// Monday → Sunday
+const MEAL_WEEK = [
+  { b: 'porridge', l: 'chickenwrap', d: 'salmonpots', s1: 'yogberries', s2: 'applepb' },
+  { b: 'yogbowl', l: 'prawnbowl', d: 'chilli', s1: 'cottagecakes', s2: 'crudites' },
+  { b: 'scramble', l: 'pestopasta', d: 'pestocod', s1: 'shake', s2: 'almondsnack' },
+  { b: 'overnight', l: 'proteinbox', d: 'stirfry', s1: 'yogberries', s2: 'edamamesnack' },
+  { b: 'omelette', l: 'quinoasalad', d: 'curry', s1: 'applepb', s2: 'chocolate' },
+  { b: 'salmontoast', l: 'quesadilla', d: 'bolognese', s1: 'shake', s2: 'crudites' },
+  { b: 'pbtoast', l: 'sweetpotato', d: 'fajitas', s1: 'cottagecakes', s2: 'eggs2' }
+];
+const ACTIVITY = [[1.375, 'Mostly sitting (desk job, drive to work)'], [1.55, 'On my feet a fair bit (walk a lot, retail, teaching)'], [1.725, 'Physical job (trades, warehouse, nursing)']];
+const HABITS = [['water', 'Drank 2 litres of water'], ['veg', 'Ate 5 portions of fruit & veg'], ['protein', 'Protein at every meal'], ['nosugar', 'No sugary drinks'], ['plan', 'Stuck to the plan (or a close swap)']];
+
+function nutritionTarget() {
+  const u = S.settings;
+  const w = lastWith('weight')?.weight;
+  if (!u.sex || !u.age || !u.height || !w) return null;
+  const bmr = 10 * w + 6.25 * u.height - 5 * u.age + (u.sex === 'm' ? 5 : -161);
+  const tdee = bmr * u.activity;
+  const maintain = weekInfo().pi === 3;
+  const deficit = maintain ? 0 : Math.min(500, tdee * 0.2);
+  const kcal = Math.max(u.sex === 'm' ? 1500 : 1200, Math.round((tdee - deficit) / 50) * 50);
+  // Protein from body weight, capped at a healthy reference weight (BMI 27) so it stays realistic
+  const refW = Math.min(w, 27 * (u.height / 100) ** 2);
+  const protein = Math.round(1.6 * refW / 5) * 5;
+  return { kcal, protein, tdee: Math.round(tdee / 50) * 50, maintain, weeklyLoss: Math.max(0, tdee - kcal) * 7 / 7700 };
+}
+
+function mealFor(day, slot) { return S.food.swaps[day + '-' + slot] || MEAL_WEEK[day][slot]; }
+function roundQty(key, q) {
+  const [, unit, , , , whole] = FOOD[key];
+  if (unit === 'each') return whole ? Math.max(1, Math.round(q)) : Math.max(0.5, Math.round(q * 2) / 2);
+  return q < 20 ? Math.max(1, Math.round(q)) : Math.round(q / 5) * 5;
+}
+function macros(items) {
+  let kcal = 0, p = 0;
+  for (const [k, q] of items) {
+    const [, unit, c, pr] = FOOD[k];
+    const f = unit === 'each' ? q : q / 100;
+    kcal += c * f; p += pr * f;
+  }
+  return { kcal: Math.round(kcal), p: Math.round(p) };
+}
+// Scales every meal in a day by one factor so the day lands on the calorie target
+function dayPlan(day, target) {
+  const ids = SLOTS.map(([s]) => mealFor(day, s));
+  const base = ids.reduce((t, id) => t + macros(MEALS[id].items).kcal, 0);
+  const factor = target ? Math.min(1.8, Math.max(0.7, target.kcal / base)) : 1;
+  const meals = ids.map((id, i) => {
+    const m = MEALS[id];
+    const items = m.items.map(([k, q]) => [k, roundQty(k, q * factor)]);
+    return { id, slot: SLOTS[i][0], label: SLOTS[i][1], m, items, ...macros(items) };
+  });
+  return { meals, kcal: meals.reduce((t, m) => t + m.kcal, 0), p: meals.reduce((t, m) => t + m.p, 0), factor };
+}
+function fmtQty(key, q) {
+  const unit = FOOD[key][1];
+  if (unit === 'each') return q === 0.5 ? '½' : String(q).replace('.5', '½');
+  if (q >= 1000) return (Math.round(q / 100) / 10) + (unit === 'g' ? ' kg' : ' l');
+  return q + ' ' + unit;
+}
+const EACH = { egg: ['egg', 'eggs'], bread: ['slice of wholemeal bread', 'slices of wholemeal bread'], wrap: ['wholemeal wrap', 'wholemeal wraps'], apple: ['apple', 'apples'], banana: ['banana', 'bananas'], ricecakes: ['rice cake', 'rice cakes'] };
+function itemLine(k, q) {
+  const [name, unit] = FOOD[k];
+  if (unit === 'each') return `${fmtQty(k, q)} ${EACH[k][q > 1 ? 1 : 0]}`;
+  return `${fmtQty(k, q)} ${name.charAt(0).toLowerCase() + name.slice(1)}`;
+}
+function todayIdx() { return (new Date().getDay() + 6) % 7; }
+function stalled() {
+  // Waist not down over the last 3+ weeks
+  const ws = S.measurements.filter(m => m.waist);
+  if (ws.length < 2) return false;
+  const last = ws.at(-1);
+  const older = [...ws].reverse().find(m => daysBetween(parse(m.date), parse(last.date)) >= 21);
+  return older ? last.waist >= older.waist : false;
+}
+
+/* ============================================================
    MUSIC
    ============================================================ */
 function embedUrl(url) {
@@ -446,7 +645,7 @@ let musicEmbedOn = false;
    ============================================================ */
 function render() {
   const tab = (location.hash || '#today').slice(1);
-  const views = { today: viewToday, plan: viewPlan, progress: viewProgress, settings: viewSettings };
+  const views = { today: viewToday, plan: viewPlan, food: viewFood, progress: viewProgress, settings: viewSettings };
   const fn = views[tab] || viewToday;
   $('#app').innerHTML = `<div class="view">${fn()}</div>`;
   document.querySelectorAll('nav.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === (views[tab] ? tab : 'today') ? 'page' : 'false'));
@@ -526,6 +725,7 @@ function viewToday() {
     </div><p class="small muted">Last logged ${fmtDate(last.date, { weekday: 'short', day: 'numeric', month: 'short' })}.</p>`
     : `<div class="empty"><b>No measurements yet</b><span class="small">Log your weight and waist today so you can see your progress. Waist is the best measure of belly fat.</span></div>`}
   </section>
+  ${todayFood()}
   <section class="card">
     <h3>Every day</h3>
     <ul class="tips small">
@@ -533,6 +733,15 @@ function viewToday() {
       <li><b>Protein at every meal.</b> Chicken, fish, eggs, Greek yoghurt, beans or tofu.</li>
       <li><b>7–9 hours of sleep</b> and plenty of water.</li>
     </ul>
+  </section>`;
+}
+function todayFood() {
+  const t = nutritionTarget(), dp = dayPlan(todayIdx(), t);
+  const main = dp.meals.filter(m => !m.slot.startsWith('s'));
+  return `<section class="card">
+    <div class="row between"><h3>Today’s food</h3><a class="btn sm secondary" href="#food" data-action="food-today">Meal plan</a></div>
+    <div class="stack small">${main.map(m => `<div class="row between" style="flex-wrap:nowrap"><span class="grow"><span class="muted">${m.label}</span> · ${esc(m.m.n)}</span><span class="muted num">${m.kcal}</span></div>`).join('')}</div>
+    <p class="small muted num">${t ? `Target ${t.kcal.toLocaleString('en-GB')} kcal · ${t.protein} g protein` : 'Add your details in Settings to get a personal calorie target.'}</p>
   </section>`;
 }
 function lastWith(k) { for (let i = S.measurements.length - 1; i >= 0; i--) if (S.measurements[i][k]) return S.measurements[i]; }
@@ -598,6 +807,119 @@ function viewPlan() {
     </ul>
     <p class="note">If you have a heart condition, high blood pressure, joint problems or any health concerns, check with your GP before starting. Stop any exercise that causes sharp pain.</p>
   </section>`;
+}
+
+let foodTab = 'meals', foodDay = todayIdx();
+
+function targetCard(t) {
+  if (!t) {
+    const missing = [!S.settings.sex && 'sex', !S.settings.age && 'age', !S.settings.height && 'height', !lastWith('weight') && 'weight'].filter(Boolean);
+    return `<section class="card">
+      <h3>Set your daily target</h3>
+      <p class="small muted">The plan below uses standard portions (about 1,750 kcal a day). Add your ${missing.join(', ')} and the app will size every portion to you.</p>
+      <div class="row">${missing.includes('weight') ? '<a class="btn sm secondary" href="#progress">Log your weight</a>' : ''}${missing.some(m => m !== 'weight') ? '<a class="btn sm" href="#settings">Add details in Settings</a>' : ''}</div>
+    </section>`;
+  }
+  return `<section class="card">
+    <div class="row between"><span class="eyebrow">${t.maintain ? 'Maintain phase · eat to maintain' : 'Daily target · fat loss'}</span><a class="small" href="#settings">Edit details</a></div>
+    <div class="stats" style="grid-template-columns:1fr 1fr">
+      <div class="stat"><span class="small muted">Calories</span><b>${t.kcal.toLocaleString('en-GB')}</b><span class="small muted">kcal a day</span></div>
+      <div class="stat"><span class="small muted">Protein</span><b>${t.protein} g</b><span class="small muted">a day</span></div>
+    </div>
+    <p class="small muted">${t.maintain
+      ? `You burn about ${t.tdee.toLocaleString('en-GB')} kcal a day, so this holds your weight steady.`
+      : `You burn about ${t.tdee.toLocaleString('en-GB')} kcal a day. Eating ${(t.tdee - t.kcal).toLocaleString('en-GB')} less should lose around ${r1(toW(t.weeklyLoss))} ${S.settings.wUnit} of fat a week. The target updates each time you log your weight.`}</p>
+    ${stalled() && !t.maintain ? `<p class="note"><b>Your waist hasn’t moved in 3 weeks.</b> That’s normal now and then. Check portions are accurate, cut back on extras like alcohol, and add 2,000 steps a day. If it still hasn’t moved in 2 weeks, drop one snack.</p>` : ''}
+  </section>`;
+}
+
+function mealCard(pm, day) {
+  const m = pm.m;
+  return `<div class="meal">
+    <div class="row between" style="align-items:flex-start;flex-wrap:nowrap">
+      <div class="grow"><span class="eyebrow">${pm.label}</span><div class="meal-name">${esc(m.n)}</div>
+        <div class="small muted num">${pm.kcal} kcal · ${pm.p} g protein${m.mins > 1 ? ` · ${m.mins} min` : ''}</div></div>
+      <button class="btn sm ghost" data-action="swap" data-day="${day}" data-slot="${pm.slot}" aria-label="Swap ${esc(m.n)}">Swap</button>
+    </div>
+    <details><summary class="small">Ingredients${m.how ? ' & method' : ''}</summary>
+      <ul class="ing">${pm.items.map(([k, q]) => `<li>${esc(itemLine(k, q))}</li>`).join('')}${m.extras ? `<li class="muted">${esc(m.extras.join(', '))}</li>` : ''}</ul>
+      ${m.how ? `<p class="small">${esc(m.how)}</p>` : ''}
+    </details>
+  </div>`;
+}
+
+function shoppingList(t) {
+  const tot = {}, extras = new Set();
+  for (let d = 0; d < 7; d++) for (const pm of dayPlan(d, t).meals) {
+    pm.items.forEach(([k, q]) => tot[k] = (tot[k] || 0) + q);
+    (pm.m.extras || []).forEach(x => extras.add(x));
+  }
+  const tick = S.food.shop;
+  const row = (key, label, qty) => `<label class="check shop ${tick[key] ? 'got' : ''}"><input type="checkbox" data-action="shop" data-k="${esc(key)}" ${tick[key] ? 'checked' : ''}><span class="grow">${esc(label)}</span><span class="muted num small">${qty}</span></label>`;
+  const groups = AISLES.map(([a, title]) => {
+    const keys = Object.keys(tot).filter(k => FOOD[k][4] === a).sort((x, y) => FOOD[x][0].localeCompare(FOOD[y][0]));
+    return keys.length ? `<div class="stack"><div class="eyebrow">${title}</div>${keys.map(k => row(k, FOOD[k][0], FOOD[k][1] === 'each' ? Math.ceil(tot[k]) : fmtQty(k, Math.ceil(tot[k] / 10) * 10))).join('')}</div>` : '';
+  }).join('');
+  const got = Object.keys(tick).filter(k => tick[k]).length;
+  return `<section class="card">
+    <div class="row between"><h3>Shopping list · 7 days</h3>${got ? '<button class="btn sm ghost" data-action="shop-clear">Untick all</button>' : ''}</div>
+    <p class="small muted">Amounts cover the whole week at your portion sizes, including any swaps. Buy meat and fish for the second half of the week later, or freeze it.</p>
+    ${groups}
+    <div class="stack"><div class="eyebrow">Check you have</div>${[...extras].sort().map(x => row('x:' + x, x, '')).join('')}</div>
+  </section>`;
+}
+
+function viewFood() {
+  const t = nutritionTarget();
+  const seg = `<div class="seg" role="group" aria-label="Food sections">${[['meals', 'Meal plan'], ['shop', 'Shopping'], ['guide', 'Guide']].map(([k, l]) => `<button data-action="food-tab" data-v="${k}" aria-pressed="${foodTab === k}">${l}</button>`).join('')}</div>`;
+  let body = '';
+  if (foodTab === 'meals') {
+    const dp = dayPlan(foodDay, t);
+    const today = iso(new Date()), h = S.food.habits[today] || {};
+    body = `
+    ${targetCard(t)}
+    <div class="days" role="group" aria-label="Day">${DAYS.map((d, i) => `<button data-action="food-day" data-v="${i}" aria-pressed="${i === foodDay}">${d}${i === todayIdx() ? '<i></i>' : ''}</button>`).join('')}</div>
+    <section class="card">
+      <div class="row between"><h3>${foodDay === todayIdx() ? 'Today' : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][foodDay]}</h3>
+      <span class="small num"><b>${dp.kcal.toLocaleString('en-GB')}</b> kcal · <b>${dp.p} g</b> protein</span></div>
+      ${t && dp.p < t.protein - 10 ? `<p class="note">This day is ${t.protein - dp.p} g short of your protein target. Swap a snack for the protein shake or cottage cheese.</p>` : ''}
+      <div class="stack">${dp.meals.map(pm => mealCard(pm, foodDay)).join('')}</div>
+      ${Object.keys(S.food.swaps).some(k => k.startsWith(foodDay + '-')) ? `<button class="btn sm ghost" data-action="swap-reset" data-day="${foodDay}" style="justify-self:start">Reset this day</button>` : ''}
+    </section>
+    <section class="card">
+      <div class="row between"><h3>Today’s habits</h3><span class="small muted num">${HABITS.filter(([k]) => h[k]).length} of ${HABITS.length}</span></div>
+      <div class="stack">${HABITS.map(([k, l]) => `<label class="check"><input type="checkbox" data-action="habit" data-k="${k}" ${h[k] ? 'checked' : ''}> ${l}</label>`).join('')}</div>
+    </section>`;
+  } else if (foodTab === 'shop') {
+    body = shoppingList(t);
+  } else {
+    body = `
+    <section class="card"><h3>How this plan works</h3>
+      <ul class="tips small">
+        <li><b>A small calorie deficit burns the fat.</b> You eat a little less than you burn, so your body uses stored fat, including belly fat. Big cuts backfire: you lose muscle, feel drained and stop training well.</li>
+        <li><b>Protein keeps the muscle you’re building.</b> It also keeps you fuller for longer. Every meal and most snacks in the plan have a good portion.</li>
+        <li><b>Fibre and veg fill you up</b> for very few calories. Half your plate at lunch and dinner should be veg or salad.</li>
+        <li><b>Portions are weighed for a reason.</b> Use kitchen scales for the first few weeks until you can judge them by eye. Oil, peanut butter and cheese are the easy ones to over-pour.</li>
+      </ul></section>
+    <section class="card"><h3>Around your workouts</h3>
+      <ul class="tips small">
+        <li><b>Before:</b> eat a meal 2–3 hours before, or a small snack like a banana or yoghurt 1 hour before. Don’t train on an empty stomach while you’re new to it.</li>
+        <li><b>After:</b> have a protein-rich meal or the protein shake within about 2 hours. On gym days, move the shake into one of your snack slots.</li>
+        <li><b>Drink</b> 500 ml of water in the 2 hours before training and sip during the session.</li>
+      </ul></section>
+    <section class="card"><h3>The rest of the picture</h3>
+      <ul class="tips small">
+        <li><b>Alcohol</b> is the most common thing that stalls belly-fat loss. A pint of lager is about 200 kcal and a large glass of wine about 230 kcal. Keep to a couple of drinks a week, and swap a snack for them if you do.</li>
+        <li><b>Sleep 7–9 hours.</b> Short sleep raises hunger hormones and makes cravings much harder to resist.</li>
+        <li><b>Stress</b> pushes up cortisol, which encourages fat storage around the middle. Walks, training and sleep all help.</li>
+        <li><b>80/20 is fine.</b> Stick to the plan for most meals and enjoy a meal out at the weekend. One meal doesn’t undo a week.</li>
+        <li><b>Eating out:</b> pick grilled meat or fish with veg or salad, ask for sauces on the side, and skip the bread basket.</li>
+      </ul></section>
+    <section class="card"><h3>If progress stalls</h3>
+      <p class="small">Check your waist, not only the scales. If your waist hasn’t gone down in 3 weeks, check your portions are accurate first, then add 2,000 daily steps, then drop one snack. The app flags this for you when it spots it.</p>
+      <p class="note">These targets are estimates for healthy adults. If you have diabetes, a medical condition, take regular medication, or have a history of disordered eating, talk to your GP or a registered dietitian before changing how you eat.</p></section>`;
+  }
+  return `<header class="stack"><span class="eyebrow">Nutrition</span><h1>Eat for your goal</h1>${seg}</header>${body}`;
 }
 
 function viewProgress() {
@@ -719,10 +1041,13 @@ function viewSettings() {
       <label class="field">Programme start<input id="s-start" type="date" value="${esc(u.startDate)}"></label>
       <label class="field">Height (${u.lUnit})<input id="s-height" type="number" inputmode="decimal" step="0.1" value="${hDisp}" placeholder="${u.lUnit === 'cm' ? 'e.g. 178' : 'e.g. 70'}"></label>
       <label class="field">Sessions per week<select id="s-days"><option value="3" ${u.days === 3 ? 'selected' : ''}>3 (A, B, C)</option><option value="4" ${u.days === 4 ? 'selected' : ''}>4 (A, B, C, D)</option></select></label>
+      <label class="field">Sex<select id="s-sex"><option value="" ${!u.sex ? 'selected' : ''}>Choose</option><option value="m" ${u.sex === 'm' ? 'selected' : ''}>Male</option><option value="f" ${u.sex === 'f' ? 'selected' : ''}>Female</option></select></label>
+      <label class="field">Age<input id="s-age" type="number" inputmode="numeric" min="16" max="100" value="${u.age ?? ''}" placeholder="e.g. 40"></label>
+      <label class="field" style="grid-column:1/-1">Day-to-day activity (outside workouts)<select id="s-act">${ACTIVITY.map(([v, l]) => `<option value="${v}" ${u.activity === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       <label class="field">Weight unit<select id="s-wu"><option value="kg" ${u.wUnit === 'kg' ? 'selected' : ''}>kg</option><option value="lb" ${u.wUnit === 'lb' ? 'selected' : ''}>lb</option></select></label>
       <label class="field">Length unit<select id="s-lu"><option value="cm" ${u.lUnit === 'cm' ? 'selected' : ''}>cm</option><option value="in" ${u.lUnit === 'in' ? 'selected' : ''}>inches</option></select></label>
     </div>
-    <p class="small muted">Week 1 starts on your programme start date. Set it to a Monday to line up with the suggested week.</p>
+    <p class="small muted">Week 1 starts on your programme start date. Set it to a Monday to line up with the suggested week. Sex, age, height and activity set your calorie target, together with your latest weight from Progress.</p>
   </section>
 
   <section class="card">
@@ -1010,6 +1335,29 @@ document.addEventListener('click', e => {
     case 't-skip': nextStep(); break;
     case 't-stop': stopTimer(); break;
     case 'days': S.settings.days = +el.dataset.v; save(); render(); break;
+    case 'food-tab': foodTab = el.dataset.v; render(); break;
+    case 'food-day': foodDay = +el.dataset.v; render(); break;
+    case 'food-today': foodTab = 'meals'; foodDay = todayIdx(); break;
+    case 'swap': {
+      const day = +el.dataset.day, slot = el.dataset.slot, type = slot[0] === 's' ? 's' : slot;
+      const pool = Object.keys(MEALS).filter(id => MEALS[id].slot === type);
+      const other = type === 's' ? mealFor(day, slot === 's1' ? 's2' : 's1') : null;
+      let i = pool.indexOf(mealFor(day, slot)), next;
+      do { i = (i + 1) % pool.length; next = pool[i]; } while (next === other);
+      const key = day + '-' + slot;
+      if (next === MEAL_WEEK[day][slot]) delete S.food.swaps[key]; else S.food.swaps[key] = next;
+      save(); render(); toast('Swapped for ' + MEALS[next].n);
+      break;
+    }
+    case 'swap-reset':
+      Object.keys(S.food.swaps).filter(k => k.startsWith(el.dataset.day + '-')).forEach(k => delete S.food.swaps[k]);
+      save(); render(); break;
+    case 'habit': {
+      const d = iso(new Date()); const h = S.food.habits[d] = S.food.habits[d] || {};
+      h[el.dataset.k] = el.checked; save(); render(); break;
+    }
+    case 'shop': S.food.shop[el.dataset.k] = el.checked; save(); render(); break;
+    case 'shop-clear': S.food.shop = {}; save(); render(); break;
     case 'del-m':
       if (arm('m' + el.dataset.date, el, 'Confirm')) { S.measurements = S.measurements.filter(m => m.date !== el.dataset.date); save(); render(); toast('Entry deleted'); }
       break;
@@ -1027,7 +1375,7 @@ document.addEventListener('click', e => {
         const d = JSON.parse($('#import-text').value);
         if (!d.settings || !Array.isArray(d.measurements)) throw 0;
         const base = defaults();
-        S = { ...base, ...d, settings: { ...base.settings, ...d.settings } }; save(); render(); toast('Backup restored');
+        S = { ...base, ...d, settings: { ...base.settings, ...d.settings }, food: { ...base.food, ...(d.food || {}) } }; save(); render(); toast('Backup restored');
       } catch (err) { toast('That doesn’t look like a Lean Plan backup'); }
       break;
     case 'reset':
@@ -1046,6 +1394,9 @@ document.addEventListener('change', e => {
   else if (id === 's-start' && v) u.startDate = v;
   else if (id === 's-height') u.height = v ? Math.round(fromL(parseFloat(v)) * 10) / 10 : null;
   else if (id === 's-days') u.days = +v;
+  else if (id === 's-sex') u.sex = v;
+  else if (id === 's-age') u.age = v ? parseInt(v, 10) : null;
+  else if (id === 's-act') u.activity = +v;
   else if (id === 's-wu') u.wUnit = v;
   else if (id === 's-lu') u.lUnit = v;
   else return;

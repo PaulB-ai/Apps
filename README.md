@@ -26,13 +26,26 @@ Belly fat comes off as your overall body fat drops. You can't target it with sit
 
 Check with your GP before starting if you have a heart condition, high blood pressure, joint problems or other health concerns.
 
+## Nutrition
+
+The **Food** tab pairs the training with a meal plan built for the same goal: lose fat, keep and build muscle.
+
+- **Daily target**: calories from the Mifflin-St Jeor formula × your day-to-day activity, minus up to 500 kcal (never more than 20%) for steady fat loss of about 0.4–0.5 kg a week. Protein is 1.6 g per kg of body weight (capped at a BMI-27 reference weight). The target updates each time you log your weight and switches to maintenance calories in the Maintain phase.
+- **7-day meal plan**: breakfast, lunch, dinner and two snacks, all under 20 minutes. No tuna, cauliflower or swede. Portions scale so each day lands on your target, and every meal can be swapped for another of the same type.
+- **Shopping list** for the week at your portion sizes, grouped by aisle, with tick-boxes.
+- **Daily habits**: water, fruit and veg, protein, no sugary drinks.
+- **Guide**: eating around workouts, alcohol, sleep, stress, eating out, and what to change if your waist stops going down. The app flags a 3-week stall automatically.
+
+These are estimates for healthy adults. Speak to a GP or registered dietitian first if you have a medical condition, take regular medication, or have a history of disordered eating.
+
 ## Features
 
 - **Today**: current week and phase, sessions done this week, your next session, latest check-in.
 - **Workout player**: warm-up, each exercise with form cues, tap-to-complete sets with an automatic rest timer, a timed circuit for home sessions, interval and steady-cardio timers, cool-down. Beeps for the last 3 seconds and each change, and keeps the screen awake.
 - **Music**: save Spotify or YouTube playlist links. During a workout tap **Open** to play in the Spotify/YouTube app in the background, or **Show player** to play it inside the app.
 - **Progress**: log weight and waist, see trend charts, change since you started, and waist-to-height ratio (under 0.50 is a healthy target).
-- **Settings**: start date, 3 or 4 days a week, kg/lb and cm/inches, playlists, backup and restore.
+- **Food**: calorie and protein target, 7-day meal plan with swaps, shopping list, daily habits.
+- **Settings**: start date, 3 or 4 days a week, sex/age/activity for your calorie target, kg/lb and cm/inches, playlists, backup and restore.
 
 Data stays on your phone in the browser's local storage. Use **Settings › Copy backup** now and then.
 
